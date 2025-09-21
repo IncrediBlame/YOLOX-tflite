@@ -11,7 +11,7 @@ pip install tensorflow
 
 ### Step2: Get ONNX models
 
-See [ONNXRuntime demo](demo/ONNXRuntime/README.md). Do not set `--decode_in_inference` flag for onnx export.
+See [ONNXRuntime demo](../../demo/ONNXRuntime/README.md). Do not set `--decode_in_inference` flag for onnx export.
 
 ### Step3: Convert ONNX model to TFLite
 
@@ -54,12 +54,12 @@ python3 tools/export_tflite.py --onnx-path /path/to/yolox.onnx --output-name you
 
 Step1.
 ```shell
-cd <YOLOX_HOME>/demo/TFLite
+cd <YOLOX_HOME>
 ```
 
 Step2.
 ```shell
-python3 tflite_inference.py -m <TFLITE_MODEL_PATH> -i <IMAGE_PATH> -o <OUTPUT_DIR> -s 0.3
+python3 -m demo.TFLite.tflite_inference -m <TFLITE_MODEL_PATH> -i <IMAGE_PATH> -o <OUTPUT_DIR> -s 0.3
 ```
 Notes:
 * -m: your converted tflite model
