@@ -2,15 +2,16 @@
 # -*- coding:utf-8 -*-
 
 import argparse
-from loguru import logger
+import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict
-import shutil
+from loguru import logger
 
 import numpy as np
-import tensorflow as tf
 
 from yolox.exp import get_exp
+
+import tensorflow as tf
 
 
 def make_parser():
@@ -28,8 +29,6 @@ def make_parser():
         type=str,
         help="experiment description file",
     )
-    parser.add_argument("-expn", "--experiment-name", type=str, default=None)
-    parser.add_argument("-n", "--name", type=str, default=None, help="model name")
     parser.add_argument(
         "--mixed",
         action="store_true",
@@ -149,7 +148,12 @@ def export_onnx2tf(onnx_model_path: Path) -> Path:
     return frozen_graph_path
 
 
-def export_tflite(saved_model_path: Path, exp: Any, output_name: str = "yolox.tflite", quantization: str = "no") -> Path:
+def export_tflite(
+    saved_model_path: Path,
+    exp: Any,
+    output_name: str = "yolox.tflite",
+    quantization: str = "no",
+) -> Path:
     """
     Exports given TF saved_model to tflite.
     """
@@ -168,8 +172,9 @@ def export_tflite(saved_model_path: Path, exp: Any, output_name: str = "yolox.tf
     if quantization:
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
     if "int8" in quantization:
-        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8] # override
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]  # override
         dataset = exp.get_dataset()
+
         def representative_dataset():
             for i in range(min(len(dataset), 1000)):  # 1000 is the max samples
                 img = dataset.read_img(i)  # 0-255 uint8 HWC
@@ -179,10 +184,11 @@ def export_tflite(saved_model_path: Path, exp: Any, output_name: str = "yolox.tf
                 padded_image[: img.shape[0], : img.shape[1]] = img
                 input_tensor = padded_image.astype(np.float32)[None, ...]
                 yield [input_tensor]
+
         converter.representative_dataset = representative_dataset
     elif "fp16" in quantization:
         converter.target_spec.supported_types = [tf.float16]
-    
+
     if "per_tensor" in quantization:
         # Turn off per-channel quantization to support NPUs
         converter._experimental_disable_per_channel = True
@@ -206,7 +212,7 @@ def export_tflite(saved_model_path: Path, exp: Any, output_name: str = "yolox.tf
 def main():
     args = make_parser().parse_args()
     logger.info("args value: {}".format(args))
-    exp = get_exp(args.exp_file, args.name)
+    exp = get_exp(args.exp_file, None)
 
     quantization = ""
     if args.int8:
@@ -220,7 +226,9 @@ def main():
         quantization += "_fp16"
     if args.mixed:
         if args.int8 or args.fp16:
-            raise ValueError("Mixed precision quantization cannot be enabled with INT8/FP16 quantization.")
+            raise ValueError(
+                "Mixed precision quantization cannot be enabled with INT8/FP16 quantization."
+            )
         quantization += "_mixed"
     if args.per_tensor:
         if not args.int8:
