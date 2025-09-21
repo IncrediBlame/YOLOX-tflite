@@ -54,8 +54,11 @@ class BaseConv(nn.Module):
         return self.act(self.conv(x))
 
 
-class DWConv(nn.Module):
-    """Depthwise Conv + Conv"""
+class DWConvOld(nn.Module):
+    """
+    Depthwise Conv + Conv
+    Original version, replaced with quantization-friendly DWConv
+    """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, act="silu"):
         super().__init__()
@@ -74,6 +77,44 @@ class DWConv(nn.Module):
     def forward(self, x):
         x = self.dconv(x)
         return self.pconv(x)
+
+
+class DWConv(nn.Module):
+    """
+    Quantization-friendly Depthwise Conv + Pointwise Conv
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, act="silu"):
+        super().__init__()
+        # Skip activation and BN between depthwise and pointwise convolutions:
+        # "A Quantization-Friendly Separable Convolution for MobileNets", 2018
+        self.dconv = nn.Sequential(
+            # Depthwise conv
+            nn.Conv2d(
+                in_channels,
+                in_channels,
+                kernel_size=ksize,
+                stride=stride,
+                padding=(ksize - 1) // 2,
+                groups=in_channels,
+                bias=False,
+            ),
+            # Pointwise conv
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            ),
+            # Single BatchNorm and activation after both convolutions
+            nn.BatchNorm2d(out_channels),
+            get_activation(act, inplace=True),
+        )
+
+    def forward(self, x):
+        return self.dconv(x)
 
 
 class Bottleneck(nn.Module):
