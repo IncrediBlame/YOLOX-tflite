@@ -1,6 +1,9 @@
 ## YOLOX-TFLite in Python
 
-This doc introduces how to convert your onnx model into tflite, and how to run a tflite demo to verify your convertion.
+This doc describes how to convert your onnx model into tflite, and how to run a tflite demo to verify your convertion.
+If you plan to INT8-quantize your model, we highly recommend training Nano version for the best latency.
+We've added Depthwise Convolution [changes](../../yolox/models/network_blocks.py), which made nano model INT8-friendly.
+For more details see "A Quantization-Friendly Separable Convolution for MobileNets" (Sheng et al, 2018).
 
 ### Step1: Install TFLite
 
